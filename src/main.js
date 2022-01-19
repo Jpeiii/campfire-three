@@ -4,8 +4,8 @@ import { DRACOLoader } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/
 import Stats from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/libs/stats.module.js';
 import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/environments/RoomEnvironment.js';
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
-import { TeapotGeometry } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/geometries/TeapotGeometry.js';
-import * as Nodes from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/renderers/nodes/Nodes.js';
+import VERTEX from '../material/vertex.glsl'
+import FRAGMENT from '../material/fragment.glsl'
 let mixer;
 
 const clock = new THREE.Clock();
@@ -55,10 +55,10 @@ loader.load( 'models/fire-candle.glb', function ( gltf ) {
 } );
 
 
-function animate() {
-  requestAnimationFrame( animate );
-  renderer.render( scene, camera );
-};
+// function animate() {
+//   requestAnimationFrame( animate );
+//   renderer.render( scene, camera );
+// };
 
 
 var ambientlight = new THREE.AmbientLight( 0x666655 );
@@ -115,87 +115,99 @@ loader.load(
 	}
 );
 
-const teapotGeometry = new TeapotGeometry( 10, 10 );
-const sphereGeometry = new THREE.SphereGeometry( 50, 130, 16 );
 
-const geometry = new THREE.BufferGeometry();
+const createSparks = (count) => {
+  const vector = new THREE.Vector4();
 
-// buffers
+  const positions = [];
+  const directions = [];
+  const offsets = [];
+  const colors = [];
+  const orientationsStart = [];
+	const orientationsEnd = [];
+  const verticesCount = count * 3;
 
-const speed = [];
-const intensity = [];
-const size = [];
+  for (let i = 0; i < count; i += 1) {
+      const direction = [
+          Math.random() - 0.5,
+          (Math.random() + 0.3),
+          Math.random() - 0.5];
+      const offset = Math.random() * Math.PI;
 
-const positionAttribute = teapotGeometry.getAttribute( 'position' );
-const particleCount = positionAttribute.count;
+      const xFactor = 1;
+      const zFactor = 1;
 
-for ( let i = 0; i < particleCount; i ++ ) {
+      for (let j = 0; j < 3; j += 1) {
+          const x = Math.random() - 0.5;
+          const y = Math.random() - 0.2;
+          const z = Math.random() - 0.5;
 
-  speed.push( 20 + Math.random() * 50 );
+          positions.push(x, y, z);
+          directions.push(...direction);
+          offsets.push(offset);
+          
+      }
+      colors.push( Math.random(), Math.random(), Math.random(), Math.random() );
+      
 
-  intensity.push( Math.random() * .15 );
+  }
 
-  size.push( 30 + Math.random() * 230 );
+  const geometry = new THREE.BufferGeometry();
+
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('direction', new THREE.Float32BufferAttribute(directions, 3));
+  geometry.setAttribute('offset', new THREE.Float32BufferAttribute(offsets, 1));
+  geometry.setAttribute( 'color', new THREE.InstancedBufferAttribute( new Float32Array( colors ), 4 ) );
+
+  return geometry;
+};
+const size = 0.5
+const material = new THREE.RawShaderMaterial({
+  uniforms: {
+      time: { value: 0.0 },
+      size: { value: 0.5 },
+      yMax: { value: 0.3 + Math.PI * size },
+  },
+  vertexShader: VERTEX,
+  fragmentShader: FRAGMENT,
+  side: THREE.DoubleSide,
+  transparent: true,
+});
+
+
+
+const geometry = createSparks(500);
+const mesh = new THREE.Mesh(geometry, material);
+
+
+mesh.position.set( -3.0, 0.9, -0.5 );
+mesh.rotation.set(0,180,0)
+console.log(mesh)
+scene.add( mesh );
+// animate();
+
+
+function animate() {
+
+  requestAnimationFrame( animate );
+
+  render();
+  stats.update();
 
 }
 
-geometry.setAttribute( 'position', positionAttribute );
-geometry.setAttribute( 'targetPosition', sphereGeometry.getAttribute( 'position' ) );
-geometry.setAttribute( 'particleSpeed', new THREE.Float32BufferAttribute( speed, 1 ) );
-geometry.setAttribute( 'particleIntensity', new THREE.Float32BufferAttribute( intensity, 1 ) );
-geometry.setAttribute( 'particleSize', new THREE.Float32BufferAttribute( size, 1 ) );
+function render() {
 
-// maps
+  const time = performance.now();
 
-// Forked from: https://answers.unrealengine.com/questions/143267/emergency-need-help-with-fire-fx-weird-loop.html
+  const object = scene.children[ 3 ];
 
-const fireMap = new THREE.TextureLoader().load( '../image/firetorch_1.jpg' );
+  object.rotation.y = time * 0.0005;
+  object.material.uniforms[ "time" ].value = time * 0.0005;
 
-// nodes
+  renderer.render( scene, camera );
 
-const targetPosition = new Nodes.AttributeNode( 'targetPosition', 'vec3' );
-const particleSpeed = new Nodes.AttributeNode( 'particleSpeed', 'float' );
-const particleIntensity = new Nodes.AttributeNode( 'particleIntensity', 'float' );
-const particleSize = new Nodes.AttributeNode( 'particleSize', 'float' );
-
-const time = new Nodes.TimerNode();
-
-const spriteSheetCount = new Nodes.Vector2Node( new THREE.Vector2( 6, 6 ) ).setConst( true );
-
-const fireUV = new Nodes.SpriteSheetUVNode( 
-  spriteSheetCount, // count
-  new Nodes.PointUVNode(), // uv
-  new Nodes.OperatorNode( '*', time, particleSpeed ) // current frame
-);
-
-const fireSprite = new Nodes.TextureNode( fireMap, fireUV );
-const fire = new Nodes.OperatorNode( '*', fireSprite, particleIntensity );
-
-const lerpPosition = new Nodes.FloatNode( 0 );
-
-const positionNode = new Nodes.MathNode( Nodes.MathNode.MIX, new Nodes.PositionNode( Nodes.PositionNode.LOCAL ), targetPosition, lerpPosition );
-
-// material
-
-const material = new Nodes.PointsNodeMaterial( {
-  depthWrite: false,
-  transparent: true,
-  sizeAttenuation: true,
-  blending: THREE.AdditiveBlending
-} );
-
-material.colorNode = fire;
-material.sizeNode = particleSize;
-material.positionNode = positionNode;
-
-const particles = new THREE.Points( geometry, material );
-particles.position.set( -3, 0.9, -0.5 );
-particles.scale.set( 0.001, 0.001, 0.001 );
-scene.add( particles );
-
-// gui
-
-
+}
 animate();
 
-
+//84CB76D4-A98C-4F92-8257-21E77F907E4A
