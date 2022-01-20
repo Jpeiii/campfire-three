@@ -27,7 +27,7 @@ scene.background = new THREE.Color( 0xbfe3dd );
 scene.environment = pmremGenerator.fromScene( new RoomEnvironment(), 0.04 ).texture;
 
 const camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 1, 100 );
-camera.position.set( 2, 1, 5 );
+camera.position.set( 0, 1, 5 );
 
 
 const controls = new OrbitControls( camera, renderer.domElement );
@@ -46,6 +46,8 @@ loader.load( 'models/fire-candle.glb', function ( gltf ) {
   const model = gltf.scene;
   model.position.set( 0,0,0 );
   model.scale.set( 0.3, 0.3, 0.3 );
+  model.rotation.set(0,180,0)
+
   scene.add( model );
 
 }, undefined, function ( e ) {
@@ -55,67 +57,6 @@ loader.load( 'models/fire-candle.glb', function ( gltf ) {
 } );
 
 
-// function animate() {
-//   requestAnimationFrame( animate );
-//   renderer.render( scene, camera );
-// };
-
-
-var ambientlight = new THREE.AmbientLight( 0x666655 );
-scene.add( ambientlight );
-
-var pointlight = new THREE.PointLight( 0xff9933, 1, 1.5 );
-pointlight.position.set( 0, 1, 0 );
-scene.add( pointlight );
-
-var textureLoader = new THREE.TextureLoader();
-var groundColor = textureLoader.load( '../image/groundcolor.jpg' );
-groundColor.wrapS = groundColor.wrapT = THREE.RepeatWrapping;
-groundColor.repeat.set( 6, 6 );
-var groundNormal = textureLoader.load( '../image/groundnormal.jpg' );
-groundColor.wrapS = groundColor.wrapT = THREE.RepeatWrapping;
-groundColor.repeat.set( 6, 6 );
-
-
-var ground = new THREE.Mesh(
-  new THREE.PlaneBufferGeometry( 10, 10 ),
-  new THREE.MeshPhongMaterial( {
-    map: groundColor,
-    normalMap: groundNormal,
-    normalScale: new THREE.Vector2( 0.8, 0.8 ),
-  } )
-);
-
-ground.rotation.x = Math.PI / -2;
-ground.position.set( -3, 0.9, -0.5 );
-ground.scale.set( 0.15, 0.15, 0.15 );
-
-scene.add( ground );
-
-// Load a glTF resource
-loader.load(
-	// resource URL
-	'../models/fireplace/model2.gltf',
-	// called when the resource is loaded
-	function ( gltf ) {
-    const fireplace = gltf.scene
-    fireplace.position.set( -3, 0.9, -0.5 );
-    fireplace.scale.set( 1, 1, 1 );
-
-		scene.add( fireplace );
-
-	
-
-	},
-	// called when loading has errors
-	function ( error ) {
-
-		console.log( `Fireplace load error:${error}` );
-
-	}
-);
-
-
 const createSparks = (count) => {
   const vector = new THREE.Vector4();
 
@@ -123,8 +64,6 @@ const createSparks = (count) => {
   const directions = [];
   const offsets = [];
   const colors = [];
-  const orientationsStart = [];
-	const orientationsEnd = [];
   const verticesCount = count * 3;
 
   for (let i = 0; i < count; i += 1) {
@@ -161,7 +100,7 @@ const createSparks = (count) => {
 
   return geometry;
 };
-const size = 0.5
+const size = 0.001
 const material = new THREE.RawShaderMaterial({
   uniforms: {
       time: { value: 0.0 },
@@ -180,9 +119,8 @@ const geometry = createSparks(500);
 const mesh = new THREE.Mesh(geometry, material);
 
 
-mesh.position.set( -3.0, 0.9, -0.5 );
+mesh.position.set( 0.85, 0.621, 0 );
 mesh.rotation.set(0,180,0)
-console.log(mesh)
 scene.add( mesh );
 // animate();
 
@@ -200,9 +138,9 @@ function render() {
 
   const time = performance.now();
 
-  const object = scene.children[ 3 ];
+  const object = scene.children[ 0 ];
 
-  object.rotation.y = time * 0.0005;
+  object.rotation.y = time * 0.0001;
   object.material.uniforms[ "time" ].value = time * 0.0005;
 
   renderer.render( scene, camera );
