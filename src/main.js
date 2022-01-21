@@ -71,7 +71,7 @@ flameMaterials.push(flameMat);
 let flame = new THREE.Mesh(flameGeo, flameMat);
 // flame.position.set(0.06, 1.2, 0.06);
 flame.rotation.y = THREE.Math.degToRad(-45);
-flame.position.set( 0.8,0.6,0.12);
+flame.position.set( 0.8,0.625,0.12);
 flame.scale.set( 0.03, 0.03, 0.03 );
 
 scene.add(flame);
