@@ -1,20 +1,17 @@
-precision highp float;
-uniform float time;
-uniform float yMax;
+varying float hValue;
+varying vec2 vUv;
 
-varying vec3 vUv;
-
-float random(vec2 ab) {
-    float f = (cos(dot(ab ,vec2(21.9898,78.233))) * 43758.5453);
-    return fract(f);
+// honestly stolen from https://www.shadertoy.com/view/4dsSzr
+vec3 heatmapGradient(float t) {
+    return clamp((pow(t, 1.5) * 0.8 + 0.2) * vec3(smoothstep(0.0, 0.35, t) + t * 0.5, smoothstep(0.5, 1.0, t), max(1.0 - t * 1.7, t * 7.0 - 6.0)), 0.0, 1.0);
 }
 
 void main() {
-    float alpha = (yMax - vUv.y) * 0.8;
-    float red = 1.0;
-    float green = 0.3 + (0.7 * mix(((yMax - vUv.y) * 0.5) + 0.5, 0.5 - abs(max(vUv.x, vUv.y)), 0.5));
-    float blueMin = abs(max(max(vUv.x, vUv.z), (vUv.y / yMax)));
-    float blue = (1.0 / (blueMin + 0.5)) - 1.0;
-
-    gl_FragColor = vec4(red, green, blue, alpha);
+    float v = abs(smoothstep(0.0, 0.4, hValue) - 1.);
+    float alpha = (1. - v) * 0.99; // bottom transparency
+    alpha -= 1. - smoothstep(1.0, 0.97, hValue); // tip transparency
+    gl_FragColor = vec4(heatmapGradient(smoothstep(0.0, 0.3, hValue)) * vec3(0.95,0.95,0.4), alpha) ;
+    gl_FragColor.rgb = mix(vec3(0,0,1), gl_FragColor.rgb, smoothstep(0.0, 0.3, hValue)); // blueish for bottom
+    gl_FragColor.rgb += vec3(1, 0.9, 0.5) * (1.25 - vUv.y); // make the midst brighter
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.66, 0.32, 0.03), smoothstep(0.95, 1., hValue)); // tip
 }

@@ -6,9 +6,9 @@ import { RoomEnvironment } from 'https://cdn.skypack.dev/three@0.136.0/examples/
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/OrbitControls.js';
 import VERTEX from '../material/vertex.glsl'
 import FRAGMENT from '../material/fragment.glsl'
+
 let mixer;
 
-const clock = new THREE.Clock();
 const container = document.getElementById( 'container' );
 
 const stats = new Stats();
@@ -56,74 +56,25 @@ loader.load( 'models/fire-candle.glb', function ( gltf ) {
 
 } );
 
-
-const createSparks = (count) => {
-  const vector = new THREE.Vector4();
-
-  const positions = [];
-  const directions = [];
-  const offsets = [];
-  const colors = [];
-  const verticesCount = count * 3;
-
-  for (let i = 0; i < count; i += 1) {
-      const direction = [
-          Math.random() - 0.5,
-          (Math.random() + 0.3),
-          Math.random() - 0.5];
-      const offset = Math.random() * Math.PI;
-
-      const xFactor = 1;
-      const zFactor = 1;
-
-      for (let j = 0; j < 3; j += 1) {
-          const x = Math.random() - 0.5;
-          const y = Math.random() - 0.2;
-          const z = Math.random() - 0.5;
-
-          positions.push(x, y, z);
-          directions.push(...direction);
-          offsets.push(offset);
-          
-      }
-      colors.push( Math.random(), Math.random(), Math.random(), Math.random() );
-      
-
-  }
-
-  const geometry = new THREE.BufferGeometry();
-
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geometry.setAttribute('direction', new THREE.Float32BufferAttribute(directions, 3));
-  geometry.setAttribute('offset', new THREE.Float32BufferAttribute(offsets, 1));
-  geometry.setAttribute( 'color', new THREE.InstancedBufferAttribute( new Float32Array( colors ), 4 ) );
-
-  return geometry;
-};
-const size = 0.001
-const material = new THREE.RawShaderMaterial({
+var flameMaterials = [];
+let flameGeo = new THREE.SphereBufferGeometry(0.5, 32, 32);
+flameGeo.translate(0, 0.5, 0);
+let flameMat = new THREE.ShaderMaterial({
   uniforms: {
-      time: { value: 0.0 },
-      size: { value: 0.5 },
-      yMax: { value: 0.3 + Math.PI * size },
+    time: {value: 0}
   },
   vertexShader: VERTEX,
   fragmentShader: FRAGMENT,
-  side: THREE.DoubleSide,
   transparent: true,
 });
+flameMaterials.push(flameMat);
+let flame = new THREE.Mesh(flameGeo, flameMat);
+// flame.position.set(0.06, 1.2, 0.06);
+flame.rotation.y = THREE.Math.degToRad(-45);
+flame.position.set( 0.8,0.6,0.12);
+flame.scale.set( 0.03, 0.03, 0.03 );
 
-
-
-const geometry = createSparks(500);
-const mesh = new THREE.Mesh(geometry, material);
-
-
-mesh.position.set( 0.85, 0.621, 0 );
-mesh.rotation.set(0,180,0)
-scene.add( mesh );
-// animate();
-
+scene.add(flame);
 
 function animate() {
 
@@ -133,15 +84,15 @@ function animate() {
   stats.update();
 
 }
-
+const clock = new THREE.Clock();
+var time = 0;
 function render() {
-
-  const time = performance.now();
+  time += clock.getDelta();
+  // const time = performance.now();
 
   const object = scene.children[ 0 ];
 
-  object.rotation.y = time * 0.0001;
-  object.material.uniforms[ "time" ].value = time * 0.0005;
+  object.material.uniforms[ "time" ].value = time 
 
   renderer.render( scene, camera );
 
